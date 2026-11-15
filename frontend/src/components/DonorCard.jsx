@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { FaPhone, FaMapMarkerAlt, FaTint, FaCalendarAlt, FaEnvelope } from 'react-icons/fa';
+import { apiBaseUrl } from '../api/axios';
 
 export default function DonorCard({ donor, onRequest }) {
   const [expanded, setExpanded] = useState(false);
@@ -7,8 +8,7 @@ export default function DonorCard({ donor, onRequest }) {
   const getInitials = (name) =>
     name ? name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() : '??';
 
-  const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-  const apiOrigin = new URL(apiBase, window.location.origin).origin;
+  const apiOrigin = new URL(apiBaseUrl, window.location.origin).origin;
 
   const timeSinceLastDonation = (date) => {
     if (!date) return 'Never donated';

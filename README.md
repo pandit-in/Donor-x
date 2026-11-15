@@ -36,7 +36,7 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:5173. The frontend defaults to `http://localhost:5000/api`; set `VITE_API_URL` in `frontend/.env` to override it.
+Open http://localhost:5173. The frontend defaults to `http://localhost:5000/api`; set `API_URL` in `frontend/.env` or Vercel's build environment to override it. The legacy `VITE_API_URL` name remains supported.
 
 ## Main flows
 
