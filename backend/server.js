@@ -19,7 +19,7 @@ const app = express();
 const allowedOrigins = new Set(
   (
     process.env.CORS_ORIGINS ||
-    "http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174,https://donor-x-backend.vercel.app"
+    "http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174,https://donor-x-delta.vercel.app"
   )
     .split(",")
     .map((origin) => origin.trim())
