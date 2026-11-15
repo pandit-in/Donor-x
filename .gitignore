@@ -1,0 +1,11 @@
+node_modules/
+dist/
+backend/.env
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+backend/uploads/*
+!backend/uploads/.gitkeep
+backend/backups/
+extracted_starter/
+screenshots/
