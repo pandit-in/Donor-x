@@ -4,6 +4,15 @@ const { recordAdminAction } = require('../services/auditService');
 const bloodGroups = ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'];
 const inventoryStatuses = ['Available', 'Low Stock', 'Critical', 'Unavailable'];
 
+const isValidSourceUrl = (value) => {
+  try {
+    const url = new URL(value);
+    return ['http:', 'https:'].includes(url.protocol) && !url.username && !url.password;
+  } catch {
+    return false;
+  }
+};
+
 const getBanks = async (req, res) => {
   try {
     const banks = await BloodBank.find({ verificationStatus: 'Verified' }).sort({ name: 1 });
@@ -17,8 +26,8 @@ const getBanks = async (req, res) => {
       delete result.updatedBy;
       const inventoryIsCurrent = result.inventoryUpdatedAt
         && now - new Date(result.inventoryUpdatedAt).getTime() < 24 * 60 * 60 * 1000;
-      if (!inventoryIsCurrent) result.inventory = {};
-      result.inventoryIsCurrent = Boolean(inventoryIsCurrent);
+      if (!inventoryIsCurrent || result.facilityType === 'Hospital') result.inventory = {};
+      result.inventoryIsCurrent = Boolean(inventoryIsCurrent && result.facilityType !== 'Hospital');
       return result;
     }));
   } catch (error) {
@@ -37,9 +46,12 @@ const getAdminBanks = async (req, res) => {
 
 const createBank = async (req, res) => {
   try {
-    const { name, address, phone, hours, licenseNumber, isGovernment } = req.body;
+    const { name, address, phone, hours, facilityType, sourceUrl, licenseNumber, isGovernment } = req.body;
+    if (sourceUrl && !isValidSourceUrl(sourceUrl)) {
+      return res.status(400).json({ message: 'Source URL must be a valid HTTP or HTTPS address' });
+    }
     const bank = await BloodBank.create({
-      name, address, phone, hours, licenseNumber, isGovernment,
+      name, address, phone, hours, facilityType, sourceUrl, licenseNumber, isGovernment,
       updatedBy: req.user._id,
     });
     await recordAdminAction({
@@ -54,11 +66,42 @@ const createBank = async (req, res) => {
   }
 };
 
+const suggestBank = async (req, res) => {
+  try {
+    if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) {
+      return res.status(400).json({ message: 'Centre suggestion must be an object' });
+    }
+    const { name, address, phone, hours, sourceUrl, facilityType, locationConfirmed } = req.body;
+    if (locationConfirmed !== true) {
+      return res.status(400).json({ message: 'Confirm that the centre is in Chhatrapati Sambhajinagar district' });
+    }
+    if (!['Blood centre', 'Hospital'].includes(facilityType)) {
+      return res.status(400).json({ message: 'Select whether this facility is a hospital or blood centre' });
+    }
+    if (!isValidSourceUrl(sourceUrl)) {
+      return res.status(400).json({ message: 'Provide a valid public HTTP or HTTPS source URL' });
+    }
+    const bank = await BloodBank.create({
+      name, address, phone, hours, facilityType, sourceUrl,
+      verificationStatus: 'Pending',
+    });
+    res.status(201).json({
+      message: 'Facility suggestion received. It will remain private until an administrator verifies it.',
+      id: bank._id,
+    });
+  } catch (error) {
+    res.status(error.name === 'ValidationError' ? 400 : 500).json({ message: error.message });
+  }
+};
+
 const updateBank = async (req, res) => {
   try {
     const updates = {};
-    for (const field of ['name', 'address', 'phone', 'hours', 'licenseNumber', 'isGovernment']) {
+    for (const field of ['name', 'address', 'phone', 'hours', 'sourceUrl', 'licenseNumber', 'isGovernment']) {
       if (req.body[field] !== undefined) updates[field] = req.body[field];
+    }
+    if (updates.sourceUrl && !isValidSourceUrl(updates.sourceUrl)) {
+      return res.status(400).json({ message: 'Source URL must be a valid HTTP or HTTPS address' });
     }
 
     if (req.body.inventory !== undefined) {
@@ -92,11 +135,21 @@ const updateBank = async (req, res) => {
 
     const bank = await BloodBank.findById(req.params.id);
     if (!bank) return res.status(404).json({ message: 'Blood bank not found' });
+    if (bank.facilityType === 'Hospital' && req.body.inventory !== undefined) {
+      return res.status(400).json({ message: 'Blood inventory can only be recorded for blood centres' });
+    }
     if (updates.verificationStatus === 'Verified') {
-      const licenseNumber = updates.licenseNumber || bank.licenseNumber;
       const notes = updates.verificationNotes || bank.verificationNotes;
-      if (!licenseNumber || !notes || notes.trim().length < 10) {
-        return res.status(400).json({ message: 'Record a license number and at least 10 characters describing verification before publishing this listing' });
+      if (bank.facilityType === 'Hospital') {
+        const sourceUrl = updates.sourceUrl || bank.sourceUrl;
+        if (!sourceUrl || !isValidSourceUrl(sourceUrl) || !notes || notes.trim().length < 10) {
+          return res.status(400).json({ message: 'Record a public source URL and at least 10 characters describing verification before publishing this hospital' });
+        }
+      } else {
+        const licenseNumber = updates.licenseNumber || bank.licenseNumber;
+        if (!licenseNumber || !notes || notes.trim().length < 10) {
+          return res.status(400).json({ message: 'Record a license number and at least 10 characters describing verification before publishing this listing' });
+        }
       }
     }
     bank.set(updates);
@@ -116,4 +169,4 @@ const updateBank = async (req, res) => {
   }
 };
 
-module.exports = { getBanks, getAdminBanks, createBank, updateBank };
+module.exports = { getBanks, getAdminBanks, createBank, suggestBank, updateBank };

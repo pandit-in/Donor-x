@@ -6,6 +6,8 @@ const bloodBankSchema = new mongoose.Schema(
     address: { type: String, required: true, trim: true, maxlength: 300 },
     phone: { type: String, required: true, trim: true, maxlength: 30 },
     hours: { type: String, required: true, trim: true, maxlength: 100 },
+    facilityType: { type: String, enum: ['Blood centre', 'Hospital'], default: 'Blood centre' },
+    sourceUrl: { type: String, trim: true, maxlength: 500, default: '' },
     licenseNumber: { type: String, trim: true, maxlength: 80, default: '' },
     isGovernment: { type: Boolean, default: false },
     verificationStatus: { type: String, enum: ['Pending', 'Verified', 'Rejected'], default: 'Pending' },

@@ -12,11 +12,16 @@ export default function CommunitySurveyView({
   onShareWhatsApp, 
   onCopyLink,
   refreshKey,
+  demoMode = false,
+  demoStats,
 }) {
   const [stats, setStats] = useState(null);
   const [statsError, setStatsError] = useState('');
 
   useEffect(() => {
+    if (demoMode) {
+      return undefined;
+    }
     let active = true;
     axiosInstance.get('/surveys/stats')
       .then(({ data }) => {
@@ -29,7 +34,10 @@ export default function CommunitySurveyView({
         if (active) setStatsError('Survey summaries are temporarily unavailable.');
       });
     return () => { active = false; };
-  }, [refreshKey]);
+  }, [demoMode, refreshKey]);
+
+  const visibleStats = demoMode ? demoStats : stats;
+  const visibleStatsError = demoMode ? '' : statsError;
 
   return (
     <div className="community-view-container">
@@ -44,15 +52,17 @@ export default function CommunitySurveyView({
         </div>
 
         <p className="community-desc">
-          Survey summaries below are calculated from responses submitted through DonorX. No results are shown until responses are received.
+          {demoMode
+            ? 'Sample figures for interface preview only; these are not real community survey results.'
+            : 'Survey summaries below are calculated from responses submitted through DonorX. No results are shown until responses are received.'}
         </p>
 
         <div className="community-stats-bar">
-          <span>👥 <b>{stats?.total ?? '—'}</b> Submitted Responses</span>
+          <span>👥 <b>{visibleStats?.total ?? '—'}</b> {demoMode ? 'Sample Responses' : 'Submitted Responses'}</span>
           <span>•</span>
-          <span>🩸 <b>{stats?.willingAnytime ?? '—'}</b> Willing to Help Anytime</span>
+          <span>🩸 <b>{visibleStats?.willingAnytime ?? '—'}</b> Willing to Help Anytime</span>
         </div>
-        {statsError && <p className="availability-desc" role="status">{statsError}</p>}
+        {visibleStatsError && <p className="availability-desc" role="status">{visibleStatsError}</p>}
       </div>
 
       {/* Sharable Donor Registration Survey Card (Screenshot 6 Match) */}
@@ -91,11 +101,11 @@ export default function CommunitySurveyView({
             Have you or family faced a severe delay finding emergency blood?
           </div>
           <div className="progress-bar-container">
-            <div className="progress-bar-fill" style={{ width: `${stats?.severeDelayPercent || 0}%` }}></div>
+            <div className="progress-bar-fill" style={{ width: `${visibleStats?.severeDelayPercent || 0}%` }}></div>
           </div>
           <div className="question-foot">
             <span>Reported severe delay</span>
-            <b>{stats ? `${stats.severeDelayPercent}%` : '—'}</b>
+            <b>{visibleStats ? `${visibleStats.severeDelayPercent}%` : '—'}</b>
           </div>
         </div>
 
@@ -104,11 +114,11 @@ export default function CommunitySurveyView({
             Would you be willing to help at any time?
           </div>
           <div className="progress-bar-container">
-            <div className="progress-bar-fill" style={{ width: `${stats?.willingAnytimePercent || 0}%`, background: 'linear-gradient(90deg, #10b981 0%, #059669 100%)' }}></div>
+            <div className="progress-bar-fill" style={{ width: `${visibleStats?.willingAnytimePercent || 0}%`, background: 'linear-gradient(90deg, #10b981 0%, #059669 100%)' }}></div>
           </div>
           <div className="question-foot">
             <span>Willingness recorded in submitted responses</span>
-            <b>{stats ? `${stats.willingAnytimePercent}%` : '—'}</b>
+            <b>{visibleStats ? `${visibleStats.willingAnytimePercent}%` : '—'}</b>
           </div>
         </div>
       </div>

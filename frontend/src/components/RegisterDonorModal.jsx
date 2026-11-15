@@ -4,6 +4,9 @@ import { CHH_SAMBHAJINAGAR_AREAS } from '../data/mockData';
 import axiosInstance from '../api/axios';
 
 const DEFAULT_DONOR_AREA = CHH_SAMBHAJINAGAR_AREAS.find((locality) => locality !== 'All Areas');
+const today = new Date();
+today.setMinutes(today.getMinutes() - today.getTimezoneOffset());
+const MAX_LAST_DONATION = today.toISOString().slice(0, 10);
 
 export default function RegisterDonorModal({ isOpen, user, existingDonor, onClose, onRegisterSuccess }) {
   const [name, setName] = useState(existingDonor?.name || user?.name || '');
@@ -14,6 +17,8 @@ export default function RegisterDonorModal({ isOpen, user, existingDonor, onClos
   const [area, setArea] = useState(existingDonor?.area || DEFAULT_DONOR_AREA);
   const [phone, setPhone] = useState(existingDonor?.phone || '');
   const [bio, setBio] = useState(existingDonor?.bio || '');
+  const [lastDonation, setLastDonation] = useState(existingDonor?.lastDonation ? new Date(existingDonor.lastDonation).toISOString().slice(0, 10) : '');
+  const [medicalConditions, setMedicalConditions] = useState(existingDonor?.medicalConditions || '');
   const [shareContact, setShareContact] = useState(existingDonor?.shareContact || false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -35,6 +40,8 @@ export default function RegisterDonorModal({ isOpen, user, existingDonor, onClos
         area,
         phone: phone.trim(),
         bio: bio.trim(),
+        lastDonation: lastDonation || null,
+        medicalConditions: medicalConditions.trim() || 'None reported',
         shareContact,
         isAvailable: existingDonor?.isAvailable ?? true,
         availabilityStatus: existingDonor?.availabilityStatus || existingDonor?.status || 'Available',
@@ -160,6 +167,17 @@ export default function RegisterDonorModal({ isOpen, user, existingDonor, onClos
               </select>
             </div>
 
+            <div>
+              <label className="modal-label">Last blood donation (optional)</label>
+              <input
+                type="date"
+                className="modal-input"
+                max={MAX_LAST_DONATION}
+                value={lastDonation}
+                onChange={(event) => setLastDonation(event.target.value)}
+              />
+            </div>
+
             <div className="form-group-full">
               <label className="modal-label">Personal Statement / Donor Bio</label>
               <textarea 
@@ -169,6 +187,17 @@ export default function RegisterDonorModal({ isOpen, user, existingDonor, onClos
                 placeholder="e.g. Student near Ghati Hospital. Ready to donate in emergency hours."
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
+              />
+            </div>
+            <div className="form-group-full">
+              <label className="modal-label">Health notes (optional; visible only to you and administrators)</label>
+              <textarea
+                className="modal-textarea"
+                rows="2"
+                maxLength={500}
+                placeholder="Share relevant information for your own records; the hospital makes all eligibility decisions."
+                value={medicalConditions}
+                onChange={(event) => setMedicalConditions(event.target.value)}
               />
             </div>
             <label className="form-group-full consent-row">

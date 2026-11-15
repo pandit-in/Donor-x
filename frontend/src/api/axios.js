@@ -1,7 +1,10 @@
 import axios from 'axios';
 
+const isLocal = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+const apiBaseUrl = import.meta.env.VITE_API_URL || (isLocal ? 'http://localhost:5000/api' : '/api');
+
 const axiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
+  baseURL: apiBaseUrl,
 });
 
 // Attach JWT token from localStorage automatically

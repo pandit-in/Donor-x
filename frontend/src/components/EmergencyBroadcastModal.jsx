@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
-import { FaFire, FaTimes } from 'react-icons/fa';
-import { COMPATIBILITY_MAP } from '../data/mockData';
+import { FaFire, FaTimes, FaWhatsapp, FaCopy, FaCheck } from 'react-icons/fa';
+import { CHH_SAMBHAJINAGAR_AREAS, COMPATIBILITY_MAP } from '../data/mockData';
 
-export default function EmergencyBroadcastModal({ isOpen, onClose, onSubmitBroadcast }) {
+const MIN_NEEDED_BY = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+
+export default function EmergencyBroadcastModal({ isOpen, isSubmitting = false, onClose, onSubmitBroadcast }) {
   const [bloodGroup, setBloodGroup] = useState('B+');
   const [units, setUnits] = useState('2 Units');
-  const [urgency, setUrgency] = useState('SAME DAY');
+  const [urgency, setUrgency] = useState('URGENT (< 4 Hours)');
+  const [neededBy, setNeededBy] = useState('');
   const [patientName, setPatientName] = useState('');
   const [hospital, setHospital] = useState('');
   const [area, setArea] = useState('Cidco');
@@ -13,11 +16,31 @@ export default function EmergencyBroadcastModal({ isOpen, onClose, onSubmitBroad
   const [attendant, setAttendant] = useState('');
   const [phone, setPhone] = useState('');
   const [notes, setNotes] = useState('');
-  const [shareContactWithDonor, setShareContactWithDonor] = useState(false);
+  const [shareContactWithDonor, setShareContactWithDonor] = useState(true);
+  const [copiedAlert, setCopiedAlert] = useState(false);
 
   if (!isOpen) return null;
 
   const compatibleGroups = COMPATIBILITY_MAP[bloodGroup] || ['O-'];
+
+  const getWhatsAppMessage = () => {
+    return `🚨 *URGENT BLOOD REQUIREMENT — DONORX* 🚨
+🩸 *Blood Group:* ${bloodGroup}
+📦 *Units Needed:* ${units}
+⏱ *Urgency:* ${urgency}
+🏥 *Hospital:* ${hospital || 'Hospital in Chh. Sambhajinagar'} (${area})
+👤 *Patient:* ${patientName || 'Emergency Patient'}
+📞 *Attendant Phone:* ${phone || 'Available via DonorX'}
+📍 *Area:* ${area}, Chhatrapati Sambhajinagar
+💬 *Notes:* ${notes || 'Immediate transfusion requirement.'}
+⚡ Please share this urgent alert in local family & donor groups!`;
+  };
+
+  const handleCopyWhatsApp = () => {
+    navigator.clipboard.writeText(getWhatsAppMessage());
+    setCopiedAlert(true);
+    setTimeout(() => setCopiedAlert(false), 2500);
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -25,6 +48,7 @@ export default function EmergencyBroadcastModal({ isOpen, onClose, onSubmitBroad
       bloodGroup,
       unitsNeeded: parseInt(units) || 2,
       urgency,
+      neededBy: neededBy || undefined,
       patientName,
       hospital,
       area,
@@ -41,7 +65,7 @@ export default function EmergencyBroadcastModal({ isOpen, onClose, onSubmitBroad
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-dialog" onClick={(e) => e.stopPropagation()}>
+      <div className="modal-dialog modal-dialog--wide" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="modal-header-sos">
           <div>
@@ -49,7 +73,7 @@ export default function EmergencyBroadcastModal({ isOpen, onClose, onSubmitBroad
               <FaFire /> Emergency Blood Request
             </div>
             <div style={{ fontSize: '0.75rem', opacity: 0.9, marginTop: 2 }}>
-              Your saved request will appear in the open-request list for signed-in donors.
+              An administrator reviews each request before compatible donors are notified. Track review status and replies in My Profile.
             </div>
           </div>
 
@@ -116,6 +140,17 @@ export default function EmergencyBroadcastModal({ isOpen, onClose, onSubmitBroad
               </select>
             </div>
 
+            <div className="form-group-full">
+              <label className="modal-label">Blood needed by (optional)</label>
+              <input
+                type="datetime-local"
+                className="modal-input"
+                min={MIN_NEEDED_BY}
+                value={neededBy}
+                onChange={(e) => setNeededBy(e.target.value)}
+              />
+            </div>
+
             {/* Patient Name & Condition */}
             <div className="form-group-full">
               <label className="modal-label">Patient Full Name &amp; Condition *</label>
@@ -123,7 +158,7 @@ export default function EmergencyBroadcastModal({ isOpen, onClose, onSubmitBroad
                 type="text"
                 required
                 className="modal-input"
-                placeholder="e.g. Ramesh Patel (Post Road Accident / ICU Bed 4)"
+                placeholder="e.g. Ramesh Patil (Post Road Accident / ICU Bed 4)"
                 value={patientName}
                 onChange={(e) => setPatientName(e.target.value)}
               />
@@ -149,10 +184,16 @@ export default function EmergencyBroadcastModal({ isOpen, onClose, onSubmitBroad
                 type="text"
                 required
                 className="modal-input"
+                list="request-area-options"
                 maxLength={100}
                 value={area}
                 onChange={(e) => setArea(e.target.value)}
               />
+              <datalist id="request-area-options">
+                {CHH_SAMBHAJINAGAR_AREAS.filter((locality) => locality !== 'All Areas').map((locality) => (
+                  <option key={locality} value={locality} />
+                ))}
+              </datalist>
             </div>
 
             {/* Hospital Address & Ward/Bed */}
@@ -161,7 +202,7 @@ export default function EmergencyBroadcastModal({ isOpen, onClose, onSubmitBroad
               <input 
                 type="text"
                 className="modal-input"
-                placeholder="e.g. SV Road, Vile Parle West, 2nd Floor ICU Counter"
+                placeholder="e.g. Panchakki Road, Jubilee Park Area, 2nd Floor ICU Counter"
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
               />
@@ -197,12 +238,13 @@ export default function EmergencyBroadcastModal({ isOpen, onClose, onSubmitBroad
               <label className="modal-label">Clinical Requirement Notes</label>
               <textarea 
                 className="modal-textarea"
-                rows="3"
-                placeholder="e.g. Emergency bypass surgery at 3:00 PM. Cross matching sample already drawn at blood bank."
+                rows="2"
+                placeholder="e.g. Emergency surgery scheduled. Cross matching sample already drawn at hospital blood bank."
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
               />
             </div>
+
             <label className="form-group-full consent-row">
               <input
                 type="checkbox"
@@ -213,9 +255,25 @@ export default function EmergencyBroadcastModal({ isOpen, onClose, onSubmitBroad
             </label>
           </div>
 
+          {/* WhatsApp Emergency Alert Share Toolkit */}
+          <div className="whatsapp-preview-kit">
+            <div className="kit-header">
+              <FaWhatsapp style={{ color: '#25D366' }} />
+              <span>1-Click Emergency WhatsApp Broadcast Template:</span>
+            </div>
+            <pre className="kit-preview-text">{getWhatsAppMessage()}</pre>
+            <button 
+              type="button" 
+              className="btn-copy-kit"
+              onClick={handleCopyWhatsApp}
+            >
+              {copiedAlert ? <><FaCheck /> Copied to Clipboard!</> : <><FaCopy /> Copy WhatsApp SOS Message</>}
+            </button>
+          </div>
+
           {/* Trigger Broadcast Button */}
-          <button type="submit" className="btn-trigger-broadcast">
-            <FaFire /> Submit Blood Request ({bloodGroup})
+          <button type="submit" className="btn-trigger-broadcast" disabled={isSubmitting}>
+            <FaFire /> {isSubmitting ? 'Submitting request…' : `Submit Blood Request (${bloodGroup})`}
           </button>
         </form>
       </div>

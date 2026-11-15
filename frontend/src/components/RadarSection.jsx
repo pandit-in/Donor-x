@@ -15,10 +15,14 @@ export default function RadarSection({
   donors, 
   onCallDonor, 
   onWhatsAppDonor, 
-  soundEnabled 
+  soundEnabled,
+  isLoading = false,
+  hasAccount = false,
+  onRegisterClick,
 }) {
   const [selectedGroup, setSelectedGroup] = useState('All');
   const [activeBlipId, setActiveBlipId] = useState('donor-1');
+  const isDemoMode = donors.some((donor) => donor.isDemo);
 
   // Filter donors by blood group
   const filteredDonors = donors.filter(d => 
@@ -26,7 +30,7 @@ export default function RadarSection({
   );
 
   // Currently selected spotlight donor (fallback to first available or donor-1)
-  const spotlightDonor = donors.find(d => d.id === activeBlipId) || filteredDonors[0] || donors[0];
+  const spotlightDonor = donors.find(d => d.id === activeBlipId && filteredDonors.includes(d)) || filteredDonors[0];
 
   const handleBlipClick = (donor) => {
     setActiveBlipId(donor.id);
@@ -42,10 +46,10 @@ export default function RadarSection({
           </div>
           <div>
             <div className="radar-heading">
-              Registered Donor Profiles
+              {isDemoMode ? 'Sample Donor Profiles · Demo' : 'Registered Donor Profiles'}
             </div>
             <div className="radar-subtext">
-              Network positions are illustrative; exact distances are unavailable
+              {isDemoMode ? 'Synthetic preview data; no real locations or profiles' : 'Network positions are illustrative; exact distances are unavailable'}
             </div>
           </div>
         </div>
@@ -87,6 +91,24 @@ export default function RadarSection({
             <FaHospital />
           </div>
 
+          {filteredDonors.length === 0 && (
+            <div className="radar-empty-state" role="status">
+              <strong>{isLoading ? 'Loading donor profiles…' : donors.length ? 'No profiles match this blood group' : 'No donor profiles to display yet'}</strong>
+              <span>
+                {isLoading
+                  ? 'Please wait while live profiles load.'
+                  : donors.length
+                    ? 'Choose another blood group to see matching profiles.'
+                    : hasAccount
+                      ? 'Donor profiles appear here after they are registered and loaded.'
+                      : 'Sign in to browse donor profiles.'}
+              </span>
+              {!isLoading && !donors.length && hasAccount && onRegisterClick && (
+                <button type="button" onClick={onRegisterClick}>Register as a donor</button>
+              )}
+            </div>
+          )}
+
           {/* Continuous Rotating Sonar Sweep Beam */}
           <div className="radar-sweep"></div>
 
@@ -119,7 +141,7 @@ export default function RadarSection({
                   zIndex: isCurrent ? 25 : 15
                 }}
                 onClick={() => handleBlipClick(donor)}
-                title={`${donor.name} (${donor.bloodGroup}) • ${donor.distance}`}
+                title={`${donor.name} (${donor.bloodGroup}) • ${donor.distance || 'sample location'}`}
               >
                 <span className={`blip-badge ${colorClass}`}>
                   {donor.bloodGroup}
@@ -165,21 +187,25 @@ export default function RadarSection({
               ))}
             </div>
 
-            <div className="spotlight-actions">
-              <button 
-                className="btn-action-call"
-                onClick={() => onCallDonor(spotlightDonor)}
-              >
-                <FaPhoneAlt /> Call
-              </button>
+            {spotlightDonor.isDemo ? (
+              <div className="contact-private-label">Demo profile — contact actions unavailable</div>
+            ) : (
+              <div className="spotlight-actions">
+                <button
+                  className="btn-action-call"
+                  onClick={() => onCallDonor(spotlightDonor)}
+                >
+                  <FaPhoneAlt /> Call
+                </button>
 
-              <button 
-                className="btn-action-whatsapp"
-                onClick={() => onWhatsAppDonor(spotlightDonor)}
-              >
-                <FaWhatsapp /> WhatsApp
-              </button>
-            </div>
+                <button
+                  className="btn-action-whatsapp"
+                  onClick={() => onWhatsAppDonor(spotlightDonor)}
+                >
+                  <FaWhatsapp /> WhatsApp
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>

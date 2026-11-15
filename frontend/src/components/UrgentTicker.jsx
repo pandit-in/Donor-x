@@ -8,15 +8,20 @@ export default function UrgentTicker({ activeSos, onRespond }) {
     <aside className="urgent-ticker-bar" aria-label="Emergency blood ticker">
       <div className="ticker-left">
         <span className="ticker-tag">
-          <FaBolt /> URGENT SOS
+          <FaBolt /> {activeSos.isDemo ? 'DEMO PREVIEW' : 'URGENT SOS'}
         </span>
         <div className="ticker-message">
           <b>[{activeSos.bloodGroup}]</b> Needed at {activeSos.hospital} ({activeSos.urgency})
         </div>
       </div>
 
-      <button className="btn-ticker-respond" onClick={() => onRespond(activeSos)}>
-        Respond <FaArrowRight />
+      <button
+        className="btn-ticker-respond"
+        onClick={() => onRespond(activeSos)}
+        disabled={activeSos.isDemo}
+        title={activeSos.isDemo ? 'Demo requests cannot be answered' : undefined}
+      >
+        {activeSos.isDemo ? 'Preview only' : <>Respond <FaArrowRight /></>}
       </button>
     </aside>
   );

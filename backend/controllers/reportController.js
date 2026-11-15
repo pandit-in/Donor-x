@@ -224,7 +224,7 @@ const getAdminSummary = async (req, res) => {
       Report.countDocuments({ status: 'Open' }),
       BloodBank.countDocuments({ verificationStatus: 'Pending' }),
       SurveyResponse.countDocuments(),
-      BloodRequest.countDocuments({ status: 'Pending' }),
+      BloodRequest.countDocuments({ status: { $in: ['Pending', 'Verified', 'Searching', 'Donor Responded', 'Connected'] } }),
       User.countDocuments({ isActive: { $ne: false } }),
     ]);
     res.json({ pendingDonors, openReports, pendingBanks, surveyResponses, activeRequests, activeUsers });

@@ -26,9 +26,16 @@ const bloodRequestSchema = new mongoose.Schema(
     notes: { type: String },
     status: {
       type: String,
-      enum: ['Pending', 'Fulfilled', 'Cancelled'],
+      enum: ['Pending', 'Verified', 'Searching', 'Donor Responded', 'Connected', 'Fulfilled', 'Cancelled', 'Expired'],
       default: 'Pending',
     },
+    verificationNotes: { type: String, maxlength: 1000, default: '' },
+    verifiedAt: { type: Date },
+    verifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    connectedResponses: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'DonorResponse',
+    }],
     respondedDonor: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Donor',
@@ -46,5 +53,7 @@ const bloodRequestSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+bloodRequestSchema.index({ status: 1, neededBy: 1, bloodGroup: 1 });
 
 module.exports = mongoose.model('BloodRequest', bloodRequestSchema);

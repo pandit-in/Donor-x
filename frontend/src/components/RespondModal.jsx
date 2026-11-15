@@ -1,27 +1,40 @@
 import React, { useState } from 'react';
 import { FaTimes, FaHeart, FaCheckCircle } from 'react-icons/fa';
 
-export default function RespondModal({ isOpen, onClose, sosRequest, currentDonor, onConfirmResponse }) {
+export default function RespondModal({ isOpen, isSubmitting = false, onClose, sosRequest, currentDonor, onConfirmResponse }) {
   const [eta, setEta] = useState('10-15 mins');
+  const [responseStatus, setResponseStatus] = useState('Accepted');
 
   if (!isOpen || !sosRequest) return null;
 
-  const handleConfirm = (e) => {
+  const resetForm = () => {
+    setEta('10-15 mins');
+    setResponseStatus('Accepted');
+  };
+
+  const handleClose = () => {
+    resetForm();
+    onClose();
+  };
+
+  const handleConfirm = async (e) => {
     e.preventDefault();
-    onConfirmResponse({
+    const saved = await onConfirmResponse({
       sosId: sosRequest.id,
-      eta,
+      status: responseStatus,
+      eta: responseStatus === 'Accepted' ? eta : undefined,
     });
+    if (saved) resetForm();
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" onClick={handleClose}>
       <div className="modal-dialog" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header-sos" style={{ background: 'linear-gradient(90deg, #b8001f 0%, #ef233c 100%)' }}>
           <div className="modal-title-sos">
             <FaHeart /> Respond to Emergency Blood Request
           </div>
-          <button className="modal-close-btn" onClick={onClose}>
+          <button className="modal-close-btn" onClick={handleClose}>
             <FaTimes />
           </button>
         </div>
@@ -40,7 +53,7 @@ export default function RespondModal({ isOpen, onClose, sosRequest, currentDonor
               📍 {sosRequest.hospital}
             </div>
             <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: 2 }}>
-              Listed area: {sosRequest.area}
+              Listed area: {sosRequest.area}{sosRequest.neededBy ? ` · Needed by ${new Date(sosRequest.neededBy).toLocaleString()}` : ''}
             </div>
           </div>
 
@@ -56,7 +69,19 @@ export default function RespondModal({ isOpen, onClose, sosRequest, currentDonor
               />
             </div>
 
-            <div>
+            <div className="form-group-full">
+              <label className="modal-label">Your response</label>
+              <select
+                className="modal-select"
+                value={responseStatus}
+                onChange={(event) => setResponseStatus(event.target.value)}
+              >
+                <option value="Accepted">I can help with this request</option>
+                <option value="Rejected">I cannot help with this request</option>
+              </select>
+            </div>
+
+            {responseStatus === 'Accepted' && <div>
               <label className="modal-label">Your Estimated Arrival Time (ETA) *</label>
               <select 
                 className="modal-select" 
@@ -68,12 +93,12 @@ export default function RespondModal({ isOpen, onClose, sosRequest, currentDonor
                 <option value="45 mins">45 mins</option>
                 <option value="1 hour">Within 1 hour</option>
               </select>
-            </div>
+            </div>}
 
           </div>
 
-          <button type="submit" className="btn-trigger-broadcast">
-            <FaCheckCircle /> Submit Donor Response
+          <button type="submit" className="btn-trigger-broadcast" disabled={isSubmitting}>
+            <FaCheckCircle /> {isSubmitting ? 'Saving response…' : responseStatus === 'Accepted' ? 'Accept request' : 'Decline request'}
           </button>
         </form>
       </div>

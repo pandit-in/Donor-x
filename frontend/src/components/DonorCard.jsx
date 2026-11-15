@@ -83,10 +83,10 @@ export default function DonorCard({ donor, onRequest }) {
           >
             {expanded ? 'Less' : 'More Info'}
           </button>
-          {donor.isAvailable && (
+          {donor.isAvailable && onRequest && (
             <button
               className="btn btn-primary btn-sm"
-              onClick={() => onRequest && onRequest(donor)}
+              onClick={() => onRequest(donor)}
             >
               Request
             </button>

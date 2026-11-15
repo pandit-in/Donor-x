@@ -11,6 +11,7 @@ const {
 } = require('../controllers/reportController');
 const { getSurveyResponses } = require('../controllers/surveyController');
 const { getAdminBanks, createBank, updateBank } = require('../controllers/bankController');
+const { getAllRequests, reviewRequest } = require('../controllers/requestController');
 const { protect, adminOnly } = require('../middleware/authMiddleware');
 
 const router = express.Router();
@@ -22,6 +23,8 @@ router.get('/donors', getAdminDonors);
 router.patch('/donors/:id/verification', verifyDonor);
 router.get('/reports', getReports);
 router.patch('/reports/:id', resolveReport);
+router.get('/requests', getAllRequests);
+router.patch('/requests/:id/status', reviewRequest);
 router.get('/users', getAdminUsers);
 router.patch('/users/:id/active', setUserActive);
 router.get('/blood-banks', getAdminBanks);

@@ -10,17 +10,19 @@ import {
 } from 'react-icons/fa';
 import { CHH_SAMBHAJINAGAR_AREAS } from '../data/mockData';
 
-export default function DonorsView({ donors, onCallDonor, onWhatsAppDonor, onReportDonor }) {
+export default function DonorsView({ donors, isLoading = false, onCallDonor, onWhatsAppDonor, onReportDonor }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedGroup, setSelectedGroup] = useState('All');
   const [selectedArea, setSelectedArea] = useState('All Areas');
+  const [selectedAvailability, setSelectedAvailability] = useState('All');
+  const [verifiedOnly, setVerifiedOnly] = useState(false);
 
   const filteredDonors = useMemo(() => {
     return donors.filter(donor => {
-      // Blood Group Match
       const matchesGroup = selectedGroup === 'All' || donor.bloodGroup === selectedGroup;
+      const matchesAvailability = selectedAvailability === 'All' || donor.status === selectedAvailability;
+      const matchesVerification = !verifiedOnly || donor.verificationStatus === 'Verified';
 
-      // Area Match
       const normalizeArea = (value) => value.toLowerCase().replace(/\b(parisar|midc)\b/g, '').replace(/[^a-z0-9]/g, '');
       const selectedAreaKey = normalizeArea(selectedArea);
       const donorAreaKey = normalizeArea(donor.area);
@@ -30,28 +32,31 @@ export default function DonorsView({ donors, onCallDonor, onWhatsAppDonor, onRep
         || selectedAreaKey.includes(donorAreaKey)
         || (isCidcoSector && /\bn?[- ]?\d{1,2}\b/i.test(donor.area));
 
-      // Search Term Match (Name, Area, Bio, Phone)
       const term = searchTerm.toLowerCase().trim();
       const matchesSearch = 
         !term || 
         donor.name.toLowerCase().includes(term) ||
         donor.area.toLowerCase().includes(term) ||
-        donor.bloodGroup.toLowerCase().includes(term);
+        donor.bloodGroup.toLowerCase().includes(term) ||
+        donor.bio.toLowerCase().includes(term);
 
-      return matchesGroup && matchesArea && matchesSearch;
+      return matchesGroup && matchesAvailability && matchesVerification && matchesArea && matchesSearch;
     });
-  }, [donors, selectedGroup, selectedArea, searchTerm]);
+  }, [donors, selectedGroup, selectedArea, selectedAvailability, verifiedOnly, searchTerm]);
+  const visibleSampleCount = filteredDonors.filter((donor) => donor.isDemo).length;
 
   return (
     <div className="donors-view-container">
       {/* Count Banner */}
       <div className="donors-count-banner">
         <div className="donors-count-text">
-          <FaUsers style={{ color: '#ef233c' }} /> Found {filteredDonors.length} matching potential donors
+          <FaUsers style={{ color: '#ef233c' }} /> Found {filteredDonors.length} matching profiles
         </div>
 
         <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
-          Registered donor profiles and saved availability in Chhatrapati Sambhajinagar
+          {visibleSampleCount
+            ? `${visibleSampleCount} sample-only profile${visibleSampleCount === 1 ? '' : 's'} shown; not registered or contactable.`
+            : 'Registered donor profiles and saved availability in Chhatrapati Sambhajinagar'}
         </span>
       </div>
 
@@ -68,7 +73,7 @@ export default function DonorsView({ donors, onCallDonor, onWhatsAppDonor, onRep
           />
         </div>
 
-        <select 
+        <select
           className="toolbar-select"
           value={selectedGroup}
           onChange={(e) => setSelectedGroup(e.target.value)}
@@ -85,6 +90,19 @@ export default function DonorsView({ donors, onCallDonor, onWhatsAppDonor, onRep
         </select>
 
         <select 
+          aria-label="Filter donors by availability"
+          className="toolbar-select"
+          value={selectedAvailability}
+          onChange={(e) => setSelectedAvailability(e.target.value)}
+        >
+          <option value="All">All Availability</option>
+          <option value="Available">Available</option>
+          <option value="On Call">On Call</option>
+          <option value="Resting">Resting</option>
+        </select>
+
+        <select
+          aria-label="Filter donors by area"
           className="toolbar-select"
           value={selectedArea}
           onChange={(e) => setSelectedArea(e.target.value)}
@@ -94,13 +112,25 @@ export default function DonorsView({ donors, onCallDonor, onWhatsAppDonor, onRep
           ))}
         </select>
 
-        {(searchTerm || selectedGroup !== 'All' || selectedArea !== 'All Areas') && (
+        <select
+          aria-label="Filter donors by verification"
+          className="toolbar-select"
+          value={verifiedOnly ? 'verified' : 'all'}
+          onChange={(event) => setVerifiedOnly(event.target.value === 'verified')}
+        >
+          <option value="all">All profile statuses</option>
+          <option value="verified">Verified profiles only</option>
+        </select>
+
+        {(searchTerm || selectedGroup !== 'All' || selectedAvailability !== 'All' || selectedArea !== 'All Areas' || verifiedOnly) && (
           <button 
             className="chip"
             onClick={() => {
               setSearchTerm('');
               setSelectedGroup('All');
+              setSelectedAvailability('All');
               setSelectedArea('All Areas');
+              setVerifiedOnly(false);
             }}
           >
             Clear Filters
@@ -116,16 +146,18 @@ export default function DonorsView({ donors, onCallDonor, onWhatsAppDonor, onRep
               {/* Left blood badge */}
               <div className="donor-blood-tag">
                 <span className="group-text">{donor.bloodGroup}</span>
-                <span className="donor-label">DONOR</span>
+                <span className="donor-label">{donor.isDemo ? 'SAMPLE' : 'DONOR'}</span>
               </div>
 
               {/* Main info */}
               <div className="donor-info-col">
                 <div className="donor-name-row">
                   <h3 className="donor-name">
-                    {donor.name} {donor.verificationStatus === 'Verified' && <FaCheckCircle className="verified-icon" title="Profile verified by an administrator" />}
+                    {donor.name} {donor.verificationStatus === 'Verified' && !donor.isDemo && <FaCheckCircle className="verified-icon" title="Profile verified by an administrator" />}
                   </h3>
-                  {donor.verificationStatus !== 'Verified' && (
+                  {donor.isDemo ? (
+                    <span className="verification-label">DEMO · Not a real donor</span>
+                  ) : donor.verificationStatus !== 'Verified' && (
                     <span className="verification-label">Profile not verified</span>
                   )}
                   <span className={`status-chip ${donor.status.toLowerCase().replace(/\s+/g, '')}`}>
@@ -134,9 +166,9 @@ export default function DonorsView({ donors, onCallDonor, onWhatsAppDonor, onRep
                 </div>
 
                 <div className="donor-meta-row">
-                  <span>{donor.age} yrs</span>
-                  <span>•</span>
-                  <span>{donor.gender}</span>
+                  {donor.age && donor.age !== '—' && <span>{donor.age} yrs</span>}
+                  {donor.age && donor.age !== '—' && donor.gender && <span>•</span>}
+                  {donor.gender && donor.gender !== 'Not provided' && <span>{donor.gender}</span>}
                   {donor.weight && (
                     <>
                       <span>•</span>
@@ -179,7 +211,9 @@ export default function DonorsView({ donors, onCallDonor, onWhatsAppDonor, onRep
             )}
 
             <div className="donor-actions-row">
-              {donor.phone ? (
+              {donor.isDemo ? (
+                <span className="contact-private-label">Sample profile — contact actions unavailable</span>
+              ) : donor.phone ? (
                 <>
                   <button className="btn-action-call" onClick={() => onCallDonor(donor)} title={`Call ${donor.name}`}>
                     <FaPhoneAlt /> Call
@@ -189,15 +223,17 @@ export default function DonorsView({ donors, onCallDonor, onWhatsAppDonor, onRep
                   </button>
                 </>
               ) : <span className="contact-private-label">Contact shared only after consent</span>}
-              <button className="btn-report-donor" onClick={() => onReportDonor(donor)} title={`Report ${donor.name}`}>
-                <FaFlag /> Report
-              </button>
+              {!donor.isDemo && (
+                <button className="btn-report-donor" onClick={() => onReportDonor(donor)} title={`Report ${donor.name}`}>
+                  <FaFlag /> Report
+                </button>
+              )}
             </div>
           </article>
         ))}
       </div>
 
-      {filteredDonors.length === 0 && (
+      {filteredDonors.length === 0 && !isLoading && (
         <div style={{ textAlign: 'center', padding: '60px 20px', background: 'var(--dx-bg-card)', borderRadius: 16 }}>
           <div style={{ fontSize: '3rem', marginBottom: 12 }}>🩸</div>
           <h3 style={{ fontSize: '1.2rem', marginBottom: 6 }}>No matching donors found</h3>
@@ -206,6 +242,7 @@ export default function DonorsView({ donors, onCallDonor, onWhatsAppDonor, onRep
           </p>
         </div>
       )}
+      {filteredDonors.length === 0 && isLoading && <p className="loading-message">Loading donor profiles…</p>}
     </div>
   );
 }

@@ -1,4 +1,5 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const router = express.Router();
 const { registerUser, loginUser, getMe, updateNotificationPreferences } = require('../controllers/authController');
 const { protect } = require('../middleware/authMiddleware');
@@ -9,6 +10,15 @@ const authLimiter = rateLimit({
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,
+});
+
+router.use((req, res, next) => {
+  if (mongoose.connection.readyState !== 1) {
+    return res.status(503).json({
+      message: 'Account service is unavailable because the database is disconnected. Please try again later.',
+    });
+  }
+  return next();
 });
 
 router.post('/register', authLimiter, registerUser);

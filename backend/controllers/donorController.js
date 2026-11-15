@@ -198,11 +198,19 @@ const toggleAvailability = async (req, res) => {
 // @route  GET /api/donors/stats
 const getDonorStats = async (req, res) => {
   try {
-    const total = await Donor.countDocuments();
-    const available = await Donor.countDocuments({ isAvailable: true });
-    const byBloodGroup = await Donor.aggregate([
-      { $group: { _id: '$bloodGroup', count: { $sum: 1 } } },
-      { $sort: { _id: 1 } },
+    const activeUserIds = await User.find({ isActive: { $ne: false } }).distinct('_id');
+    const visibleDonorFilter = {
+      user: { $in: activeUserIds },
+      verificationStatus: { $ne: 'Rejected' },
+    };
+    const [total, available, byBloodGroup] = await Promise.all([
+      Donor.countDocuments(visibleDonorFilter),
+      Donor.countDocuments({ ...visibleDonorFilter, isAvailable: true }),
+      Donor.aggregate([
+        { $match: visibleDonorFilter },
+        { $group: { _id: '$bloodGroup', count: { $sum: 1 } } },
+        { $sort: { _id: 1 } },
+      ]),
     ]);
     res.json({ total, available, byBloodGroup });
   } catch (error) {

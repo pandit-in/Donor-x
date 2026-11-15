@@ -9,6 +9,7 @@ export default function NotificationsDrawer({
   onRespond,
   onMarkRead,
   onMarkAllRead,
+  demoMode = false,
 }) {
   if (!isOpen) return null;
   const unreadCount = notifications.filter((notification) => !notification.readAt).length;
@@ -21,6 +22,7 @@ export default function NotificationsDrawer({
           <button className="modal-close-btn" onClick={onClose} aria-label="Close"><FaTimes /></button>
         </div>
         <div className="modal-body notification-list">
+          {demoMode && <p className="availability-desc">Demo preview: sample requests below are not real emergencies.</p>}
           {unreadCount > 0 && (
             <button type="button" className="auth-mode-toggle" onClick={onMarkAllRead}>Mark all as read</button>
           )}
@@ -39,10 +41,10 @@ export default function NotificationsDrawer({
           <h3 className="availability-heading">Open blood requests</h3>
           {openRequests.map((request) => (
             <article key={request.id} className="notification-item">
-              <strong>{request.bloodGroup} · {request.hospital}</strong>
-              <p>{request.unitsNeeded} unit(s) · {request.urgency} · {request.area}</p>
-              <button type="button" className="btn-ticker-respond" onClick={() => { onClose(); onRespond(request); }}>
-                Respond with ETA
+              <strong>{request.isDemo ? 'DEMO · ' : ''}{request.bloodGroup} · {request.hospital}</strong>
+              <p>{request.unitsNeeded} unit(s) · {request.urgency} · {request.area}{request.neededBy ? ` · Needed by ${new Date(request.neededBy).toLocaleString()}` : ''}</p>
+              <button type="button" className="btn-ticker-respond" disabled={request.isDemo} onClick={() => { onClose(); onRespond(request); }}>
+                {request.isDemo ? 'Preview only' : 'Respond to request'}
               </button>
             </article>
           ))}
