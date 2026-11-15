@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   FaMapMarkerAlt, 
   FaPhoneAlt, 
@@ -12,6 +12,7 @@ import {
   FaFileAlt,
   FaHeartbeat
 } from 'react-icons/fa';
+import axiosInstance, { apiBaseUrl } from '../api/axios';
 
 export default function Footer({ 
   onNavigateTab, 
@@ -21,12 +22,71 @@ export default function Footer({
   onOpenDocs, 
   onTriggerSos 
 }) {
+  const [serviceHealth, setServiceHealth] = useState({
+    backend: 'checking',
+    database: 'checking',
+    problem: '',
+  });
   const currentYear = new Date().getFullYear();
   const shareText = "Join Chhatrapati Sambhajinagar's voluntary emergency blood network on DonorX. Save lives together!";
+
+  useEffect(() => {
+    let active = true;
+    const healthUrl = new URL('/health', new URL(apiBaseUrl, window.location.origin)).toString();
+
+    const checkHealth = async () => {
+      try {
+        const { data } = await axiosInstance.get(healthUrl, { timeout: 5000 });
+        if (!active) return;
+
+        setServiceHealth({
+          backend: 'connected',
+          database: data.database === 'connected' ? 'connected' : 'unknown',
+          problem: data.database === 'connected' ? '' : 'The backend is reachable, but database status is unavailable.',
+        });
+      } catch (error) {
+        if (!active) return;
+
+        if (error.response) {
+          const databaseDisconnected = error.response.status === 503
+            || error.response.data?.database === 'disconnected';
+          setServiceHealth({
+            backend: 'connected',
+            database: databaseDisconnected ? 'disconnected' : 'unknown',
+            problem: error.response.data?.message
+              || (databaseDisconnected
+                ? 'The backend is running, but the database is disconnected.'
+                : `Health check returned HTTP ${error.response.status}.`),
+          });
+          return;
+        }
+
+        setServiceHealth({
+          backend: 'disconnected',
+          database: 'unknown',
+          problem: 'Cannot reach the backend. Check API_URL and network access.',
+        });
+      }
+    };
+
+    checkHealth();
+    const intervalId = setInterval(checkHealth, 30000);
+    return () => {
+      active = false;
+      clearInterval(intervalId);
+    };
+  }, []);
 
   const handleShare = () => {
     window.open(`https://wa.me/?text=${encodeURIComponent(`${shareText} ${window.location.href}`)}`, '_blank', 'noopener,noreferrer');
   };
+
+  const healthLabel = (status) => ({
+    checking: 'Checking…',
+    connected: 'Connected',
+    disconnected: 'Disconnected',
+    unknown: 'Unknown',
+  }[status] || 'Unknown');
 
   return (
     <footer className="footer-site">
@@ -132,6 +192,19 @@ export default function Footer({
               </button>
             </div>
           </div>
+        </div>
+
+        <div className="footer-health" role="status" aria-live="polite">
+          <strong className="footer-health-heading">System health</strong>
+          {['backend', 'database'].map((service) => (
+            <span className={`footer-health-item footer-health-item--${serviceHealth[service]}`} key={service}>
+              <span className="footer-health-dot" aria-hidden="true" />
+              {service === 'backend' ? 'Backend' : 'Database'}: {healthLabel(serviceHealth[service])}
+            </span>
+          ))}
+          {serviceHealth.problem && (
+            <span className="footer-health-problem">{serviceHealth.problem}</span>
+          )}
         </div>
 
         {/* Bottom Credits & Disclaimer */}
