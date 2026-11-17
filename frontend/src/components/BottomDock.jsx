@@ -4,11 +4,10 @@ import {
   FaSearch, 
   FaFire, 
   FaHospital, 
-  FaIdCard, 
-  FaChartBar 
+  FaIdCard,
 } from 'react-icons/fa';
 
-export default function BottomDock({ activeTab, setActiveTab, onTriggerSos }) {
+export default function BottomDock({ activeTab, setActiveTab, onTriggerSos, user, onOpenAuth }) {
   return (
     <nav className="bottom-dock" aria-label="Bottom Navigation">
       <button 
@@ -46,18 +45,11 @@ export default function BottomDock({ activeTab, setActiveTab, onTriggerSos }) {
 
       <button 
         className={`dock-btn ${activeTab === 'profile' ? 'active' : ''}`}
-        onClick={() => setActiveTab('profile')}
+        onClick={() => user ? setActiveTab('profile') : onOpenAuth('login', 'seeker')}
+        aria-label={user ? 'Open my profile' : 'Log in or register'}
       >
         <FaIdCard className="dock-icon" />
-        <span>My Donor ID</span>
-      </button>
-
-      <button 
-        className={`dock-btn ${activeTab === 'community' ? 'active' : ''}`}
-        onClick={() => setActiveTab('community')}
-      >
-        <FaChartBar className="dock-icon" />
-        <span>Community</span>
+        <span>{user ? 'My Profile' : 'Login / Register'}</span>
       </button>
     </nav>
   );

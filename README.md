@@ -68,6 +68,14 @@ Set Atlas network access to allow connections from the Render service. For a pro
 
 The free Render service uses ephemeral storage. Uploaded donor profile photos are kept in `backend/uploads/`, so they can disappear when the service restarts or redeploys. Use persistent storage or external object storage before relying on profile photo uploads in production.
 
+## Deploy on Vercel
+
+Set `MONGO_URI` and `JWT_SECRET` in the backend project's Vercel environment variables for every environment you deploy (Production, Preview, and Development as needed). Set `MONGO_DB_NAME` only if the database name in the connection string should be overridden. Set the frontend build variable `API_URL` to the deployed backend URL ending in `/api`.
+
+MongoDB Atlas blocks connections from IP addresses that are not in the cluster's Network Access list. Vercel deployments use dynamic outbound IP addresses, so a fixed Vercel IP cannot generally be allowlisted on standard plans. For a direct Atlas connection, Atlas's Vercel integration requires `0.0.0.0/0`; that allows traffic from any IP, so use a strong, least-privilege database user and consider a deployment/network option with fixed egress IPs for tighter restrictions. See [MongoDB's Vercel integration guide](https://www.mongodb.com/docs/atlas/reference/partner-integrations/vercel/) and [Atlas IP access list guidance](https://www.mongodb.com/docs/atlas/security/ip-access-list/).
+
+After changing environment variables or Atlas Network Access, redeploy the backend so the new settings are applied. Check the backend's `/health` endpoint; it reports whether MongoDB is connected.
+
 ## Security notes
 
 - Never commit `.env` files or share database credentials.

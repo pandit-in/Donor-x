@@ -106,7 +106,6 @@ const toRequestView = (request) => ({
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('home');
-  const [isMobilePreview, setIsMobilePreview] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [user, setUser] = useState(readStoredUser);
   const [authReady, setAuthReady] = useState(() => !readStoredUser());
@@ -753,7 +752,7 @@ export default function App() {
   };
 
   return (
-    <div className={`app-wrapper ${isMobilePreview ? 'mobile-preview' : ''}`}>
+    <div className="app-wrapper">
       <div className="ambient-background" aria-hidden="true">
         <span className="ambient-orb ambient-orb--red" />
         <span className="ambient-orb ambient-orb--blue" />
@@ -769,8 +768,6 @@ export default function App() {
         onOpenCertificate={() => setIsCertificateOpen(true)}
         soundEnabled={soundEnabled}
         setSoundEnabled={setSoundEnabled}
-        isMobilePreview={isMobilePreview}
-        setIsMobilePreview={setIsMobilePreview}
         notificationsCount={notifications.filter((item) => !item.readAt).length}
         onOpenNotifications={handleOpenNotifications}
         onOpenAdmin={() => handleSetActiveTab('admin')}
@@ -947,7 +944,13 @@ export default function App() {
         onTriggerSos={handleOpenRequestForm}
       />
 
-      <BottomDock activeTab={activeTab} setActiveTab={handleSetActiveTab} onTriggerSos={handleOpenRequestForm} />
+      <BottomDock
+        activeTab={activeTab}
+        setActiveTab={handleSetActiveTab}
+        onTriggerSos={handleOpenRequestForm}
+        user={user}
+        onOpenAuth={openAuth}
+      />
 
       <EmergencyBroadcastModal
         isOpen={isSosModalOpen}

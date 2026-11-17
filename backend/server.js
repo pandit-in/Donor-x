@@ -2,10 +2,8 @@ const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const path = require("path");
-const dns = require("node:dns");
 
 const connectDB = require("./config/db");
-dns.setServers(["8.8.8.8", "8.8.4.4"]);
 
 dotenv.config();
 if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
