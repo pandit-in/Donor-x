@@ -39,6 +39,15 @@ app.use(
 app.use(express.json({ limit: "100kb" }));
 app.use(express.urlencoded({ extended: true }));
 
+// Vercel can start an Express instance before Atlas is reachable. Retry on
+// later requests instead of leaving the function permanently disconnected.
+app.use("/api", async (req, res, next) => {
+  if (await connectDB()) return next();
+  return res.status(503).json({
+    message: "Database is unavailable. Check MONGO_URI and MongoDB Atlas Network Access.",
+  });
+});
+
 // Static uploads
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
@@ -68,8 +77,8 @@ app.get("/", (req, res) => {
     message: "🩸 Blood Donor API - Chhatrapati Sambhaji Nagar is running!",
   });
 });
-app.get("/health", (req, res) => {
-  const connected = require("mongoose").connection.readyState === 1;
+app.get("/health", async (req, res) => {
+  const connected = await connectDB();
   res.status(connected ? 200 : 503).json({
     status: connected ? "ok" : "unavailable",
     database: connected ? "connected" : "disconnected",
