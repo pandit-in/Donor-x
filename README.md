@@ -70,7 +70,7 @@ The free Render service uses ephemeral storage. Uploaded donor profile photos ar
 
 ## Deploy on Vercel
 
-Set `MONGO_URI` and `JWT_SECRET` in the backend project's Vercel environment variables for every environment you deploy (Production, Preview, and Development as needed). Set `MONGO_DB_NAME` only if the database name in the connection string should be overridden. Set the frontend build variable `API_URL` to the deployed backend URL ending in `/api`.
+Set `MONGO_URI` and `JWT_SECRET` in the backend project's Vercel environment variables for every environment you deploy (Production, Preview, and Development as needed). Set `FRONTEND_URL` to the exact deployed frontend origin (for example, `https://your-app.vercel.app` with no path), or add it to the comma-separated `CORS_ORIGINS` value. Set `MONGO_DB_NAME` only if the database name in the connection string should be overridden. Set the frontend build variable `API_URL` to the deployed backend URL ending in `/api`.
 
 MongoDB Atlas blocks connections from IP addresses that are not in the cluster's Network Access list. Vercel deployments use dynamic outbound IP addresses, so a fixed Vercel IP cannot generally be allowlisted on standard plans. For a direct Atlas connection, Atlas's Vercel integration requires `0.0.0.0/0`; that allows traffic from any IP, so use a strong, least-privilege database user and consider a deployment/network option with fixed egress IPs for tighter restrictions. See [MongoDB's Vercel integration guide](https://www.mongodb.com/docs/atlas/reference/partner-integrations/vercel/) and [Atlas IP access list guidance](https://www.mongodb.com/docs/atlas/security/ip-access-list/).
 

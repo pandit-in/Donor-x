@@ -14,15 +14,18 @@ connectDB();
 const app = express();
 
 // Middleware
-const allowedOrigins = new Set(
-  (
-    process.env.CORS_ORIGINS ||
-    "http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174,https://donor-x-delta.vercel.app"
-  )
-    .split(",")
-    .map((origin) => origin.trim())
-    .filter(Boolean),
-);
+const defaultOrigins = [
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+  "http://localhost:5174",
+  "http://127.0.0.1:5174",
+  "https://donor-x-delta.vercel.app",
+];
+const allowedOrigins = new Set([
+  ...defaultOrigins,
+  process.env.FRONTEND_URL,
+  ...(process.env.CORS_ORIGINS || "").split(","),
+].map((origin) => origin?.trim()).filter(Boolean));
 app.use(
   cors({
     origin(origin, callback) {
@@ -76,6 +79,17 @@ app.get("/health", (req, res) => {
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({ message: "Route not found" });
+});
+
+app.use((error, req, res, next) => {
+  if (error.message === "Origin not allowed by CORS") {
+    return res.status(403).json({
+      message: "This website is not on the API CORS allowlist. Configure FRONTEND_URL or CORS_ORIGINS on the backend.",
+    });
+  }
+
+  console.error("Unhandled request error:", error);
+  return res.status(500).json({ message: "Internal server error" });
 });
 
 const PORT = process.env.PORT || 5000;
